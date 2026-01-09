@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>조합 서열 소트</title>
+    <style>
+        body { font-family: 'Pretendard', sans-serif; text-align: center; background-color: #f0f2f5; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .phase-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 15px; }
+        .p1 { background: #fff0f0; color: #ff6b81; }
+        .p2 { background: #f0f5ff; color: #007bff; }
+        .vs-box { display: flex; flex-direction: column; gap: 12px; margin: 25px 0; }
+        .choice-btn { 
+            padding: 25px; font-size: 22px; cursor: pointer; border: 2px solid #eee; 
+            border-radius: 15px; background: white; transition: 0.2s; font-weight: bold;
+        }
+        .choice-btn:hover { border-color: #ff6b81; transform: translateY(-2px); box-shadow: 0 5px 10px rgba(0,0,0,0.05); }
+        #result { display: none; text-align: left; }
+        .rank-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; }
+        .rank-num { width: 40px; font-weight: bold; font-size: 18px; color: #ff6b81; }
+        .progress-text { font-size: 14px; color: #888; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="game-part">
+        <div id="phase-badge" class="phase-badge p1">1단계: 포지션 결정</div>
+        <div class="progress-text" id="progress">1 / 10</div>
+        <h2 style="font-size: 20px; margin: 15px 0;">더 선호하는 조합은?</h2>
+        <div class="vs-box">
+            <button class="choice-btn" id="btn-left" onclick="handleSelect(0)"></button>
+            <button class="choice-btn" id="btn-right" onclick="handleSelect(1)"></button>
+        </div>
+    </div>
+
+    <div id="result">
+        <h2 style="text-align:center; color:#333;">✨ 나의 조합 순위 ✨</h2>
+        <div id="rank-list"></div>
+        <button onclick="location.reload()" style="margin-top:20px; width:100%; padding:15px; border-radius:10px; border:none; background:#333; color:white; cursor:pointer; font-weight:bold;">다시 하기</button>
+    </div>
+</div>
+
+<script>
+    const members = ["감자", "새싹", "머머", "얀", "하소"];
+    let phase = 1;
+    let phase1Pairs = [];
+    let phase2Queue = [];
+    let finalScores = {};
+    let currentIndex = 0;
+
+    // 1단계: 모든 2인 조합의 방향 결정 (10쌍)
+    for (let i = 0; i < members.length; i++) {
+        for (let j = i + 1; j < members.length; j++) {
+            phase1Pairs.push([members[i] + members[j], members[j] + members[i]]);
+        }
+    }
+    phase1Pairs.sort(() => Math.random() - 0.5);
+
+    function updateUI() {
+        if (phase === 1) {
+            document.getElementById('btn-left').innerText = phase1Pairs[currentIndex][0];
+            document.getElementById('btn-right').innerText = phase1Pairs[currentIndex][1];
+            document.getElementById('progress').innerText = `${currentIndex + 1} / 10`;
+        } else {
+            // 2단계: 승자들끼리 대결
+            document.getElementById('phase-badge').className = "phase-badge p2";
+            document.getElementById('phase-badge').innerText = "2단계: 최종 순위 결정";
+            document.getElementById('btn-left').innerText = phase2Queue[currentIndex];
+            document.getElementById('btn-right').innerText = phase2Queue[currentIndex + 1];
+            document.getElementById('progress').innerText = `${Math.floor(currentIndex/2) + 1} / 5`;
+        }
+    }
+
+    function handleSelect(side) {
+        if (phase === 1) {
+            // 선택된 방향을 2단계 대결 리스트에 추가
+            phase2Queue.push(phase1Pairs[currentIndex][side]);
+            finalScores[phase1Pairs[currentIndex][side]] = 0;
+            currentIndex++;
+            if (currentIndex >= 10) {
+                phase = 2;
+                currentIndex = 0;
+                phase2Queue.sort(() => Math.random() - 0.5); // 2단계 대결 순서 섞기
+            }
+        } else {
+            // 선택된 조합에 가중치 부여
+            const winner = phase2Queue[currentIndex + side];
+            finalScores[winner] += 10; 
+            currentIndex += 2;
+            if (currentIndex >= 10) {
+                showResult();
+                return;
+            }
+        }
+        updateUI();
+    }
+
+    function showResult() {
+        document.getElementById('game-part').style.display = 'none';
+        document.getElementById('result').style.display = 'block';
+        
+        // 점수 높은 순으로 정렬 (1단계 통과한 10개만 표시)
+        const sorted = Object.entries(finalScores).sort((a, b) => b[1] - a[1]);
+        const rankList = document.getElementById('rank-list');
+        sorted.forEach((item, i) => {
+            rankList.innerHTML += `<div class="rank-item">
+                <span class="rank-num">${i+1}</span>
+                <span><b>${item[0]}</b></span>
+            </div>`;
+        });
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
